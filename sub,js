@@ -115,21 +115,50 @@ async function handleRequest(request) {
     } // End Function _utf8_decode 
 
   }
-
+  function dateFormat(fmt, date) {
+      let ret;
+      const opt = {
+          "Y+": date.getFullYear().toString(),        // 年
+          "m+": (date.getMonth() + 1).toString(),     // 月
+          "d+": date.getDate().toString(),            // 日
+          "H+": date.getHours().toString(),           // 时
+          "M+": date.getMinutes().toString(),         // 分
+          "S+": date.getSeconds().toString()          // 秒
+      };
+      for (let k in opt) {
+          ret = new RegExp("(" + k + ")").exec(fmt);
+          if (ret) {
+              fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
+          };
+      };
+      return fmt;
+  }
   function getsub(str) {
     let domstr = "";
     domstr = str;
     trojan_list = [];
-    var re = new RegExp("(?<=<b>)[^<]*(?=</b>)", "g");
+    var timezone = 8; 
+    //目标时区时间，东八区
+    var offset_GMT = new Date().getTimezoneOffset(); 
+    // 本地时间和格林威治的时间差，单位为分钟
+    var nowDate = new Date().getTime();
+     // 本地时间距 1970 年 1 月 1 日午夜（GMT 时间）之间的毫秒数
+    var targetDate = new Date(nowDate + offset_GMT * 60 * 1000 + timezone * 60 * 60 * 1000);
+    date_str = dateFormat("mm-dd_HH:MM", targetDate);
+    // var re = new RegExp("(?<=<b>)[^<]*(?=</b>)", "g");
+    var re = new RegExp("(?<=<b>)(.*?)(?=</b>)", "g");
     for (i of domstr.split("\n")) {
       if (i.indexOf("trojan") >= 0) {
         trojan_list.push(i.match(re));
       }
     }
-
+    trojan_list.forEach((trojan, i) => {
+      trojan[1]=pwd[i].replace("\n","");
+    });
     sub = "";
     for (trojan of trojan_list) {
-      sub += `trojan://${trojan[1]}@${trojan[0]}:${trojan[2]}#zkq8\n`
+      // sub += `trojan://${trojan[1]}@${trojan[0]}:${2202}#zkq8\n`
+      sub += `trojan://${trojan[1]}@${trojan[0]}:${trojan[2]}#zkq8_${date_str}\n`
     }
 
     return Base64.encode(sub);
@@ -140,9 +169,28 @@ async function handleRequest(request) {
     outBody, outStatus = 200, outStatusText = 'OK', outCt = null, outHeaders = new Headers({
       "Access-Control-Allow-Headers": "Accept, Authorization, Cache-Control, Content-Type, DNT, If-Modified-Since, Keep-Alive, Origin, User-Agent, X-Requested-With, Token, x-access-token"
     });
+  pwd = [];
+  for (p of ["1", "2"]) {
+    try {
+      // let url = "https://www.zkq8.com/v2ray2_link.txt"
+      let url = "https://www.youhou8.com/pwd"
+      //构建 fetch 参数
+      let fp = {
+        method: request.method,
+        headers: {}
+      }
 
+      // 发起 fetch
+      let fr = (await fetch(url+p, fp));
+      pwd.push(await fr.text());
+
+    } catch (err) {
+      pwd.push("");
+    }
+  }
   try {
-    let url = "https://www.zkq8.com/v2ray2_link.txt"
+    // let url = "https://www.zkq8.com/v2ray2_link.txt"
+    let url = "https://www.youhou8.com/v2ray"
     //构建 fetch 参数
     let fp = {
       method: request.method,
